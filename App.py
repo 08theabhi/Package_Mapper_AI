@@ -1,11 +1,37 @@
+import subprocess
+import sys
 import streamlit as st
 import pandas as pd
 import requests
-from bs4 import BeautifulSoup
-from groq import Groq
+import re
 import io
+from groq import Groq
+from html.parser import HTMLParser
 
-st.set_page_config(page_title="College Placement Analyzer", layout="wide")
+# ---- HTML Parser without BeautifulSoup ----
+class TextExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.text = []
+        self.skip_tags = {"script", "style", "head", "meta"}
+        self.current_skip = False
+
+    def handle_starttag(self, tag, attrs):
+        if tag in self.skip_tags:
+            self.current_skip = True
+
+    def handle_endtag(self, tag):
+        if tag in self.skip_tags:
+            self.current_skip = False
+
+    def handle_data(self, data):
+        if not self.current_skip:
+            self.text.append(data.strip())
+
+    def get_text(self):
+        return " ".join(t for t in self.text if t)
+
+st.set_page_config(page_title="PackageMapper AI", layout="wide")
 
 client = Groq(api_key="gsk_xxxxxxxxxxxxxxxxxxxx")  # your Groq key here
 
@@ -13,10 +39,9 @@ def scrape_page(url):
     try:
         headers = {"User-Agent": "Mozilla/5.0"}
         response = requests.get(url, headers=headers, timeout=15)
-        soup = BeautifulSoup(response.text, "html.parser")
-        # Extract all visible text
-        text = soup.get_text(separator=" ", strip=True)
-        # Limit to 3000 chars to fit in Groq context
+        parser = TextExtractor()
+        parser.feed(response.text)
+        text = parser.get_text()
         return text[:3000]
     except Exception as e:
         return f"Error scraping: {str(e)}"
@@ -67,7 +92,7 @@ def extract_packages_with_ai(college_name, scraped_text):
         return 0.0, 0.0
 
 # ---- UI ----
-st.title("🎓 College Placement Analyzer")
+st.title("📦 PackageMapper AI")
 st.write("Upload an Excel file with College Name and URL columns to analyze placement data.")
 
 uploaded_file = st.file_uploader("📂 Upload Excel File", type=["xlsx", "xls"])
@@ -77,7 +102,6 @@ if uploaded_file:
     st.subheader("📋 Uploaded Data:")
     st.dataframe(df)
 
-    # Check columns
     if "College Name" not in df.columns or "URL" not in df.columns:
         st.error("❌ Excel must have exactly 'College Name' and 'URL' columns.")
     else:
@@ -92,10 +116,7 @@ if uploaded_file:
 
                 status.write(f"⏳ Scraping: **{college}**")
 
-                # Step 1 - Scrape
                 scraped_text = scrape_page(url)
-
-                # Step 2 - Extract with AI
                 highest, average = extract_packages_with_ai(college, scraped_text)
 
                 results.append({
@@ -111,24 +132,20 @@ if uploaded_file:
 
             results_df = pd.DataFrame(results)
 
-            # CSV 1 - Sorted by Highest Package
             highest_df = results_df[["College Name", "URL", "Highest Package (LPA)"]]\
                 .sort_values("Highest Package (LPA)", ascending=False)\
                 .reset_index(drop=True)
 
-            # CSV 2 - Sorted by Average Package
             average_df = results_df[["College Name", "URL", "Average Package (LPA)"]]\
                 .sort_values("Average Package (LPA)", ascending=False)\
                 .reset_index(drop=True)
 
-            # Show results
             st.subheader("🏆 Highest Package - All Colleges")
             st.dataframe(highest_df)
 
             st.subheader("📊 Average Package - All Colleges")
             st.dataframe(average_df)
 
-            # Download buttons
             col1, col2 = st.columns(2)
 
             with col1:
