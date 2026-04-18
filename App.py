@@ -104,7 +104,8 @@ uploaded_file = st.file_uploader("📂 Upload Excel File (.xlsx)", type=["xlsx"]
 
 if uploaded_file:
     try:
-        df = pd.read_excel(uploaded_file, engine="calamine")
+        file_bytes = io.BytesIO(uploaded_file.read())
+        df = pd.read_excel(file_bytes, engine="openpyxl")
         st.subheader("📋 Uploaded Data:")
         st.dataframe(df)
 
