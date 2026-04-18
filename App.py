@@ -1,9 +1,4 @@
-import subprocess
-import sys
-
-# Force install openpyxl at runtime
-subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl==3.1.2", "--quiet"])
-
+ # your Groq key here  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
 import streamlit as st
 import pandas as pd
 import requests
@@ -109,7 +104,7 @@ uploaded_file = st.file_uploader("📂 Upload Excel File (.xlsx)", type=["xlsx"]
 
 if uploaded_file:
     try:
-        df = pd.read_excel(uploaded_file, engine="openpyxl")
+        df = pd.read_excel(uploaded_file, engine="calamine")
         st.subheader("📋 Uploaded Data:")
         st.dataframe(df)
 
@@ -124,23 +119,18 @@ if uploaded_file:
                 for i, row in df.iterrows():
                     college = row["College Name"]
                     url = row["URL"]
-
                     status.write(f"⏳ Scraping: **{college}**")
-
                     scraped_text = scrape_page(url)
                     highest, average = extract_packages_with_ai(college, scraped_text)
-
                     results.append({
                         "College Name": college,
                         "URL": url,
                         "Highest Package (LPA)": highest,
                         "Average Package (LPA)": average
                     })
-
                     progress.progress((i + 1) / len(df))
 
                 status.write("✅ Analysis Complete!")
-
                 results_df = pd.DataFrame(results)
 
                 highest_df = results_df[["College Name", "URL", "Highest Package (LPA)"]]\
@@ -158,7 +148,6 @@ if uploaded_file:
                 st.dataframe(average_df)
 
                 col1, col2 = st.columns(2)
-
                 with col1:
                     csv1 = highest_df.to_csv(index=False).encode("utf-8")
                     st.download_button(
@@ -167,7 +156,6 @@ if uploaded_file:
                         file_name="highest_package_colleges.csv",
                         mime="text/csv"
                     )
-
                 with col2:
                     csv2 = average_df.to_csv(index=False).encode("utf-8")
                     st.download_button(
