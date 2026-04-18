@@ -98,19 +98,28 @@ def extract_packages_with_ai(college_name, scraped_text):
 
 # ---- UI ----
 st.title("📦 PackageMapper AI")
-st.write("Upload an Excel file with College Name and URL columns to analyze placement data.")
 
-uploaded_file = st.file_uploader("📂 Upload Excel File (.xlsx)", type=["xlsx"])
+# Explain conversion step
+st.info("""
+📌 **How to upload your Excel file:**
+1. Open your Excel file
+2. Click **File → Save As**
+3. Choose **CSV UTF-8 (.csv)** format
+4. Upload the CSV file below
+""")
+
+st.write("Upload a CSV file with **College Name** and **URL** columns.")
+
+uploaded_file = st.file_uploader("📂 Upload File", type=["csv"])
 
 if uploaded_file:
     try:
-        file_bytes = io.BytesIO(uploaded_file.read())
-        df = pd.read_excel(file_bytes, engine="openpyxl")
+        df = pd.read_csv(uploaded_file)
         st.subheader("📋 Uploaded Data:")
         st.dataframe(df)
 
         if "College Name" not in df.columns or "URL" not in df.columns:
-            st.error("❌ Excel must have exactly 'College Name' and 'URL' columns.")
+            st.error("❌ File must have exactly 'College Name' and 'URL' columns.")
         else:
             if st.button("🔍 Analyze Placements"):
                 results = []
