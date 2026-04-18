@@ -1,3 +1,9 @@
+import subprocess
+import sys
+
+# Force install openpyxl at runtime
+subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl==3.1.2", "--quiet"])
+
 import streamlit as st
 import pandas as pd
 import requests
@@ -99,73 +105,76 @@ def extract_packages_with_ai(college_name, scraped_text):
 st.title("📦 PackageMapper AI")
 st.write("Upload an Excel file with College Name and URL columns to analyze placement data.")
 
-uploaded_file = st.file_uploader("📂 Upload Excel File", type=["xlsx", "xls"])
+uploaded_file = st.file_uploader("📂 Upload Excel File (.xlsx)", type=["xlsx"])
 
 if uploaded_file:
-    df = pd.read_excel(uploaded_file)
-    st.subheader("📋 Uploaded Data:")
-    st.dataframe(df)
+    try:
+        df = pd.read_excel(uploaded_file, engine="openpyxl")
+        st.subheader("📋 Uploaded Data:")
+        st.dataframe(df)
 
-    if "College Name" not in df.columns or "URL" not in df.columns:
-        st.error("❌ Excel must have exactly 'College Name' and 'URL' columns.")
-    else:
-        if st.button("🔍 Analyze Placements"):
-            results = []
-            progress = st.progress(0)
-            status = st.empty()
+        if "College Name" not in df.columns or "URL" not in df.columns:
+            st.error("❌ Excel must have exactly 'College Name' and 'URL' columns.")
+        else:
+            if st.button("🔍 Analyze Placements"):
+                results = []
+                progress = st.progress(0)
+                status = st.empty()
 
-            for i, row in df.iterrows():
-                college = row["College Name"]
-                url = row["URL"]
+                for i, row in df.iterrows():
+                    college = row["College Name"]
+                    url = row["URL"]
 
-                status.write(f"⏳ Scraping: **{college}**")
+                    status.write(f"⏳ Scraping: **{college}**")
 
-                scraped_text = scrape_page(url)
-                highest, average = extract_packages_with_ai(college, scraped_text)
+                    scraped_text = scrape_page(url)
+                    highest, average = extract_packages_with_ai(college, scraped_text)
 
-                results.append({
-                    "College Name": college,
-                    "URL": url,
-                    "Highest Package (LPA)": highest,
-                    "Average Package (LPA)": average
-                })
+                    results.append({
+                        "College Name": college,
+                        "URL": url,
+                        "Highest Package (LPA)": highest,
+                        "Average Package (LPA)": average
+                    })
 
-                progress.progress((i + 1) / len(df))
+                    progress.progress((i + 1) / len(df))
 
-            status.write("✅ Analysis Complete!")
+                status.write("✅ Analysis Complete!")
 
-            results_df = pd.DataFrame(results)
+                results_df = pd.DataFrame(results)
 
-            highest_df = results_df[["College Name", "URL", "Highest Package (LPA)"]]\
-                .sort_values("Highest Package (LPA)", ascending=False)\
-                .reset_index(drop=True)
+                highest_df = results_df[["College Name", "URL", "Highest Package (LPA)"]]\
+                    .sort_values("Highest Package (LPA)", ascending=False)\
+                    .reset_index(drop=True)
 
-            average_df = results_df[["College Name", "URL", "Average Package (LPA)"]]\
-                .sort_values("Average Package (LPA)", ascending=False)\
-                .reset_index(drop=True)
+                average_df = results_df[["College Name", "URL", "Average Package (LPA)"]]\
+                    .sort_values("Average Package (LPA)", ascending=False)\
+                    .reset_index(drop=True)
 
-            st.subheader("🏆 Highest Package - All Colleges")
-            st.dataframe(highest_df)
+                st.subheader("🏆 Highest Package - All Colleges")
+                st.dataframe(highest_df)
 
-            st.subheader("📊 Average Package - All Colleges")
-            st.dataframe(average_df)
+                st.subheader("📊 Average Package - All Colleges")
+                st.dataframe(average_df)
 
-            col1, col2 = st.columns(2)
+                col1, col2 = st.columns(2)
 
-            with col1:
-                csv1 = highest_df.to_csv(index=False).encode("utf-8")
-                st.download_button(
-                    label="⬇️ Download Highest Package CSV",
-                    data=csv1,
-                    file_name="highest_package_colleges.csv",
-                    mime="text/csv"
-                )
+                with col1:
+                    csv1 = highest_df.to_csv(index=False).encode("utf-8")
+                    st.download_button(
+                        label="⬇️ Download Highest Package CSV",
+                        data=csv1,
+                        file_name="highest_package_colleges.csv",
+                        mime="text/csv"
+                    )
 
-            with col2:
-                csv2 = average_df.to_csv(index=False).encode("utf-8")
-                st.download_button(
-                    label="⬇️ Download Average Package CSV",
-                    data=csv2,
-                    file_name="average_package_colleges.csv",
-                    mime="text/csv"
-                )
+                with col2:
+                    csv2 = average_df.to_csv(index=False).encode("utf-8")
+                    st.download_button(
+                        label="⬇️ Download Average Package CSV",
+                        data=csv2,
+                        file_name="average_package_colleges.csv",
+                        mime="text/csv"
+                    )
+    except Exception as e:
+        st.error(f"❌ Error reading file: {str(e)}")
