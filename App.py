@@ -1,14 +1,10 @@
-import subprocess
-import sys
 import streamlit as st
 import pandas as pd
 import requests
-import re
 import io
-from groq import Groq
 from html.parser import HTMLParser
 
-# ---- HTML Parser without BeautifulSoup ----
+# ---- HTML Parser ----
 class TextExtractor(HTMLParser):
     def __init__(self):
         super().__init__()
@@ -33,7 +29,7 @@ class TextExtractor(HTMLParser):
 
 st.set_page_config(page_title="PackageMapper AI", layout="wide")
 
-client = Groq(api_key="gsk_xxxxxxxxxxxxxxxxxxxx")  # your Groq key here
+GROQ_API_KEY = "gsk_xxxxxxxxxxxxxxxxxxxx"  # your Groq key here
 
 def scrape_page(url):
     try:
@@ -65,11 +61,19 @@ def extract_packages_with_ai(college_name, scraped_text):
         Text:
         {scraped_text}
         """
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": prompt}]
+        response = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "llama-3.3-70b-versatile",
+                "messages": [{"role": "user", "content": prompt}]
+            },
+            timeout=30
         )
-        result = response.choices[0].message.content.strip()
+        result = response.json()["choices"][0]["message"]["content"].strip()
 
         highest = 0.0
         average = 0.0
