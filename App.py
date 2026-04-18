@@ -29,7 +29,7 @@ class TextExtractor(HTMLParser):
 
 st.set_page_config(page_title="PackageMapper AI", layout="wide")
 
-GROQ_API_KEY = "gsk_xxxxxxxxxxxxxxxxxxxx"  # your Groq key here
+GROQ_API_KEY = "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"  # your Groq key here
 
 def scrape_page(url):
     try:
