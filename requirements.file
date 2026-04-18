@@ -2,4 +2,4 @@ streamlit
 pandas
 requests
 openpyxl
-groq
+groq==0.9.0
